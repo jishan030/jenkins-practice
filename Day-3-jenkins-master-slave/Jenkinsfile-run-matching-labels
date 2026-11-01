@@ -1,0 +1,22 @@
+// Sirf us agent par chalega jiska label 'linux-agent' hai.
+// Agent offline ho to build "Waiting for next available executor" par ruka rahega.
+
+pipeline {
+    agent { label 'linux-agent' }
+
+    stages {
+        stage('Where am I?') {
+            steps {
+                echo "Node: ${env.NODE_NAME}"
+                sh 'pwd'
+                sh 'whoami'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Build agent par chal raha hai'
+                sh 'sleep 5'
+            }
+        }
+    }
+}
