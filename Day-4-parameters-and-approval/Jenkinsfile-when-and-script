@@ -1,0 +1,48 @@
+pipeline {
+    agent { label 'linux-agent' }
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['Apply', 'Destroy'],
+            description: 'Select the action to perform'
+        )
+    }
+
+    stages {
+        stage('Plan') {
+            when {
+                expression { params.ACTION == 'Apply' }
+            }
+            steps {
+                echo 'Plan stage (runs only for Apply)'
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input(
+                    message: "You selected ${params.ACTION}. Continue?",
+                    ok: 'Proceed'
+                )
+            }
+        }
+
+        stage('Execute') {
+            steps {
+                script {
+                    if (params.ACTION == 'Apply') {
+                        echo 'Running Apply'
+                    } else {
+                        echo 'Running Destroy'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo 'Pipeline completed successfully' }
+        failure { echo 'Pipeline failed' }
+    }
+}
