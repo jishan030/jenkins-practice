@@ -1,12 +1,14 @@
 pipeline {
-    stage('Where am I?') {
-    steps {
-        echo "Node: ${env.NODE_NAME}"
-        sh 'pwd'
-    }
-}
+    agent { label 'linux-agent' }
 
     stages {
+        stage('Where am I?') {
+            steps {
+                echo "Node: ${env.NODE_NAME}"
+                sh 'pwd'
+                sh 'whoami'
+            }
+        }
         stage('Checkout') {
             steps {
                 echo 'Code Jenkins ne GitHub se le liya'
