@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    stage('Where am I?') {
+    steps {
+        echo "Node: ${env.NODE_NAME}"
+        sh 'pwd'
+    }
+}
 
     stages {
         stage('Checkout') {
