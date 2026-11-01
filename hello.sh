@@ -1,3 +1,3 @@
 #!/bin/bash
-echo "Hello bro from webhook"
+echo "Hello bro your msg is updated"
 echo "Build time: $(date)"
