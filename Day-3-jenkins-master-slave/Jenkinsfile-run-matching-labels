@@ -1,0 +1,22 @@
+// Runs only on an agent labeled 'linux-agent'.
+// If no matching agent is online, the build stays queued
+// with "Waiting for next available executor".
+pipeline {
+    agent { label 'linux-agent' }
+
+    stages {
+        stage('Node Info') {
+            steps {
+                echo "Running on node: ${env.NODE_NAME}"
+                sh 'pwd'
+                sh 'whoami'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Build running on the agent'
+                sh 'sleep 5'
+            }
+        }
+    }
+}
