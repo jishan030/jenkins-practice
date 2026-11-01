@@ -1,3 +1,3 @@
 #!/bin/bash
-echo "Hello from my repo script"
+echo "Hello from webhook"
 echo "Build time: $(date)"
