@@ -1,0 +1,73 @@
+// Applies or destroys the Terraform demo based on the ACTION parameter.
+// Run apply and destroy on the same node, because Terraform state
+// is stored in the agent workspace.
+pipeline {
+    agent { label 'linux-agent' }
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['Apply', 'Destroy'],
+            description: 'Select the Terraform action'
+        )
+    }
+
+    environment {
+        TF_DIR = 'Day-5-terraform-jenkins/terraform-demo'
+    }
+
+    stages {
+        stage('Terraform Init') {
+            steps {
+                dir("${TF_DIR}") {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            when {
+                expression { params.ACTION == 'Apply' }
+            }
+            steps {
+                dir("${TF_DIR}") {
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input(
+                    message: "You selected ${params.ACTION}. Continue?",
+                    ok: 'Proceed'
+                )
+            }
+        }
+
+        stage('Execute') {
+            steps {
+                script {
+                    dir("${TF_DIR}") {
+                        if (params.ACTION == 'Apply') {
+                            sh 'terraform apply -auto-approve tfplan'
+                        } else {
+                            sh 'terraform destroy -auto-approve'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Show Result') {
+            when {
+                expression { params.ACTION == 'Apply' }
+            }
+            steps {
+                dir("${TF_DIR}") {
+                    sh 'cat output/hello.txt'
+                }
+            }
+        }
+    }
+}
