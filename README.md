@@ -1,74 +1,86 @@
-# Jenkins Practice
+# Jenkins CI/CD Practice
 
-Jenkins CI/CD seekhne ki meri hands-on practice repo. Isme EC2 par Jenkins setup, GitHub webhook, master-slave (agent), Pipeline as Code aur Terraform pipelines ke working examples hain.
+![Jenkins](https://img.shields.io/badge/Jenkins-2.580.2-D24939?logo=jenkins&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white)
+![AWS EC2](https://img.shields.io/badge/AWS-EC2-FF9900?logo=amazonaws&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-Webhook-181717?logo=github&logoColor=white)
 
-## Setup jisme practice ki
+A hands-on Jenkins project running on AWS EC2. It demonstrates Pipeline as Code, GitHub webhook automation, a distributed controller-agent setup, parameterized pipelines with manual approval, and Terraform automation.
 
-| Cheez | Detail |
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Repository Structure](#repository-structure)
+- [Pipelines](#pipelines)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Verifying the Controller-Agent Setup](#verifying-the-controller-agent-setup)
+- [Troubleshooting](#troubleshooting)
+- [Security Notes](#security-notes)
+- [Key Learnings](#key-learnings)
+- [Roadmap](#roadmap)
+
+## Overview
+
+| Component | Details |
 |---|---|
-| Jenkins | v2.580.2, AWS EC2 (Amazon Linux 2023) par |
-| Master (controller) | Jenkins service, port `8080` |
-| Agent (slave) | `agent-1`, label `linux-agent`, WebSocket se connected |
-| Trigger | GitHub webhook (push par auto build) |
-| IaC | Terraform (local provider demo, AWS ki zarurat nahi) |
+| CI/CD server | Jenkins 2.580.2 on AWS EC2 (Amazon Linux 2023) |
+| Controller | Jenkins service listening on port `8080` |
+| Agent | `agent-1`, labeled `linux-agent`, connected over WebSocket |
+| Trigger | GitHub webhook on every push |
+| Pipeline style | Declarative Pipeline, loaded from source control |
+| Infrastructure as Code | Terraform (local provider demo, no cloud cost) |
 
 ## Architecture
 
-```
-Developer --push--> GitHub --webhook--> Jenkins Master
-                                            |
-                                   label: linux-agent
-                                            |
-                                            v
-                                      agent-1 (build, test, deploy)
+```mermaid
+flowchart LR
+    Dev[Developer] -->|git push| GH[GitHub Repository]
+    GH -->|webhook| C[Jenkins Controller]
+    C -->|label: linux-agent| A[agent-1]
+    A --> B[Build]
+    B --> T[Test]
+    T --> D[Deploy / Terraform]
 ```
 
-Master job schedule karta hai, agent actual kaam karta hai.
+When a developer pushes code, GitHub sends a webhook to the Jenkins controller. The controller schedules the job and dispatches it to an agent whose label matches the pipeline. The agent then runs the build, test, and deploy stages in its own workspace.
 
-## Repo structure
+## Repository Structure
 
 ```
 jenkins-practice/
-├── Jenkinsfile                 # hello-job ka pipeline (agent-1 par chalta hai)
-├── hello.sh                    # demo script
-├── .gitignore                  # Terraform state aur cache ignore
+├── Jenkinsfile                                   # Root pipeline used by hello-job
+├── hello.sh                                      # Demo script
+├── .gitignore                                    # Excludes Terraform state and cache
 ├── Day-3-jenkins-master-slave/
-│   └── Jenkinsfile-run-matching-labels
+│   └── Jenkinsfile-run-matching-labels           # Label-based agent selection
 ├── Day-4-parameters-and-approval/
-│   └── Jenkinsfile-when-and-script
+│   └── Jenkinsfile-when-and-script               # Parameters, when, input, script
 └── Day-5-terraform-jenkins/
-    ├── Jenkinsfile-ex6-apply-destroy-parameter
+    ├── Jenkinsfile-ex6-apply-destroy-parameter   # Terraform apply/destroy pipeline
     └── terraform-demo/
-        └── main.tf
+        └── main.tf                               # Safe demo configuration
 ```
 
-## Kya-kya cover hua
+## Pipelines
 
-| Folder / File | Concept |
-|---|---|
-| `Jenkinsfile` (root) | Pipeline as Code, stages, `post` block, agent label |
-| `Day-3-jenkins-master-slave/Jenkinsfile-run-matching-labels` | `agent { label '...' }` se job ko specific agent par bhejna |
-| `Day-4-parameters-and-approval/Jenkinsfile-when-and-script` | `parameters`, `when`, `input` (manual approval), `script` |
-| `Day-5-terraform-jenkins/Jenkinsfile-ex6-apply-destroy-parameter` | Terraform init, plan, approval, apply ya destroy (parameter se) |
-| `Day-5-terraform-jenkins/terraform-demo/main.tf` | Safe demo: sirf ek text file banata hai |
+| Pipeline | Path | Demonstrates |
+|---|---|---|
+| Root pipeline | `Jenkinsfile` | Stages, `post` actions, agent label, checkout from SCM |
+| Label routing | `Day-3-jenkins-master-slave/Jenkinsfile-run-matching-labels` | Targeting a specific agent with `agent { label '...' }` |
+| Parameters and approval | `Day-4-parameters-and-approval/Jenkinsfile-when-and-script` | `parameters`, `when`, `input`, `script` |
+| Terraform automation | `Day-5-terraform-jenkins/Jenkinsfile-ex6-apply-destroy-parameter` | `init`, `plan`, manual approval, then `apply` or `destroy` |
 
-## Kisi bhi Jenkinsfile ko kaise chalayein
+The Terraform demo uses the `local` provider and only creates a text file. It requires no AWS credentials and incurs no cost, while following the same workflow used for real cloud infrastructure.
 
-1. Jenkins me **New Item -> Pipeline** banao
-2. **Definition:** `Pipeline script from SCM`
-3. **SCM:** Git
-4. **Repository URL:** `https://github.com/jishan030/jenkins-practice.git`
-5. **Branch Specifier:** `*/main`
-6. **Script Path:** jis file ko chalana hai uska poora path, jaise
-   `Day-4-parameters-and-approval/Jenkinsfile-when-and-script`
-7. **Save** -> **Build Now**
+## Prerequisites
 
-Parameter wale pipelines me pehla build bina dropdown ke chalta hai. Dusre build se **Build with Parameters** dikhta hai.
+- A running Jenkins controller with the Git and Pipeline plugins installed
+- At least one online agent with the label `linux-agent`
+- Terraform installed on the agent machine (required for Day-5 only)
 
-## Pehle se chahiye
-
-- Jenkins running aur agent `agent-1` online (label `linux-agent`)
-- Terraform wale pipelines ke liye agent wali machine par Terraform:
+Install Terraform on Amazon Linux:
 
 ```bash
 sudo yum install -y yum-utils
@@ -77,51 +89,90 @@ sudo yum -y install terraform
 terraform --version
 ```
 
-## Agent connect karne ka tareeka (short)
+## Getting Started
 
-1. **Manage Jenkins -> Nodes -> New Node** (Permanent Agent, label `linux-agent`, launch method: connect to controller)
-2. Node page se secret copy karo
-3. Machine par agent chalao:
+### 1. Run a pipeline from this repository
+
+1. In Jenkins, select **New Item** and choose **Pipeline**.
+2. Under **Pipeline**, set **Definition** to `Pipeline script from SCM`.
+3. Set **SCM** to `Git` and **Repository URL** to `https://github.com/jishan030/jenkins-practice.git`.
+4. Set **Branch Specifier** to `*/main`.
+5. Set **Script Path** to the pipeline you want to run, for example `Day-4-parameters-and-approval/Jenkinsfile-when-and-script`.
+6. Save the job and select **Build Now**.
+
+For parameterized pipelines, the first build runs without the parameter form. From the second build onward, use **Build with Parameters**.
+
+### 2. Connect an agent
+
+1. Go to **Manage Jenkins → Nodes → New Node** and create a Permanent Agent labeled `linux-agent`.
+2. Select **Launch agent by connecting it to the controller**, then copy the secret from the node page.
+3. Start the agent on the target machine:
 
 ```bash
 mkdir -p ~/Jenkins-agent && cd ~/Jenkins-agent
 curl -sO http://localhost:8080/jnlpJars/agent.jar
-nohup java -jar agent.jar -url http://localhost:8080/ \
-  -secret <SECRET> -name "agent-1" -webSocket \
+nohup java -jar agent.jar \
+  -url http://localhost:8080/ \
+  -secret <SECRET> \
+  -name "agent-1" \
+  -webSocket \
   -workDir "$HOME/Jenkins-agent" > agent.log 2>&1 &
 ```
 
-Secret kabhi repo me commit mat karo.
+### 3. Enable automatic builds
 
-## Master-slave ka proof
+1. In the GitHub repository, go to **Settings → Webhooks → Add webhook**.
+2. Set **Payload URL** to `http://<controller-address>:8080/github-webhook/` (the trailing slash is required).
+3. Set **Content type** to `application/json` and select the push event.
+4. In the Jenkins job, enable **GitHub hook trigger for GITScm polling**.
 
-Build ke Console Output ki pehli lines dekho:
+## Verifying the Controller-Agent Setup
 
-| Output | Matlab |
+Open the Console Output of a build and check the first lines:
+
+| Output | Meaning |
 |---|---|
-| `Running on agent-1 in /home/ec2-user/Jenkins-agent/workspace/...` | Job agent par chala |
-| `Running on Jenkins in /var/lib/jenkins/workspace/...` | Job master par chala |
+| `Running on agent-1 in /home/ec2-user/Jenkins-agent/workspace/...` | The job ran on the agent |
+| `Running on Jenkins in /var/lib/jenkins/workspace/...` | The job ran on the controller |
 
-## Common errors aur fix
+As a second check, stop the agent with `pkill -f agent.jar` and trigger a build. The build remains queued with the message "Waiting for next available executor" until the agent reconnects, which confirms that label-based routing works.
 
-| Error | Fix |
+## Troubleshooting
+
+| Symptom | Resolution |
 |---|---|
-| `Couldn't find any revision to build` | Branch name check karo (`*/main`) |
-| `Jenkinsfile not found` | Script Path aur file ka naam check karo |
-| `Waiting for next available executor` | Label match karne wala agent online nahi hai |
-| Webhook me laal cross | Security Group me port `8080` open karo, Payload URL end me `/` ho |
-| Terraform destroy me state nahi mili | Apply aur destroy ek hi node par chalao |
+| `Couldn't find any revision to build` | Verify the branch name in **Branch Specifier** (`*/main`) |
+| `Jenkinsfile not found` | Check the **Script Path** and the exact file name |
+| Build waits for an executor | No online agent matches the label; check the node status |
+| Webhook shows a red cross | Open port `8080` in the Security Group and verify the Payload URL |
+| Terraform `destroy` cannot find state | Run `apply` and `destroy` on the same node, because state is stored in the workspace |
+| Parameter form is missing | Run the job once; the form appears from the second build |
 
-## Cleanup
+## Security Notes
 
-- Terraform wale pipeline me practice ke baad `Destroy` chalao
-- Agent band karne ke liye: `pkill -f agent.jar`
-- Practice khatam hone par EC2 instance stop karo
+- No secrets, tokens, or IP addresses are stored in this repository.
+- Store credentials in Jenkins Credentials and reference them with `withCredentials`.
+- For AWS access, prefer an IAM role attached to the instance over static access keys.
+- Restrict inbound access to port `8080` to trusted IP ranges when webhook testing is not in progress.
+- Terraform state and plan files are excluded through `.gitignore`.
 
-## Seekha kya
+## Key Learnings
 
-- CI/CD ka flow: push -> webhook -> build -> test -> deploy
-- Pipeline as Code (Jenkinsfile repo me)
-- Master-slave architecture aur label based job routing
-- Parameters, manual approval aur conditional stages
-- Jenkins se Terraform chalana
+- The CI/CD flow: push, webhook, build, test, deploy
+- Pipeline as Code using Declarative syntax
+- Controller-agent architecture and label-based job routing
+- Parameters, conditional stages, and manual approval gates
+- Running Terraform workflows from Jenkins
+
+## Roadmap
+
+- [ ] Docker-based dynamic agents
+- [ ] Credentials management with `withCredentials`
+- [ ] Parallel stages
+- [ ] Email and Slack notifications
+- [ ] Multibranch pipeline
+- [ ] Remote Terraform state (S3 backend)
+
+## Author
+
+**Jishan Khan**: [github.com/jishan030](https://github.com/jishan030)
